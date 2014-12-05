@@ -26,12 +26,11 @@ public class Aggregator {
     private static Channel channelOut;
     private static final String IN_QUEUE = "aggregator";
     private static final String OUT_QUEUE = "webservice";
-
-    public Aggregator(Channel input, Channel output) {
-        activeAggregates = new HashMap();
-    }
+    private static QueueingConsumer consumer;
 
     public static void main(String[] args) throws IOException, InterruptedException {
+        activeAggregates = new HashMap();
+        
         ConnectionFactory factory = new ConnectionFactory();
         factory.setUsername("nicklas");
         factory.setPassword("cph");
@@ -42,7 +41,8 @@ public class Aggregator {
         channelOut = connection.createChannel();
         channelIn.queueDeclare(IN_QUEUE, false, false, false, null);
         channelOut.queueDeclare(OUT_QUEUE, false, false, false, null);
- 
+        consumer = new QueueingConsumer(channelIn);
+        channelIn.basicConsume(IN_QUEUE, true, consumer);
         handleMessage();
 
         
@@ -51,25 +51,29 @@ public class Aggregator {
     public static void handleMessage() throws IOException, InterruptedException {
 
         while (true) {
-            QueueingConsumer consumer = new QueueingConsumer(channelIn);
-            channelIn.basicConsume(IN_QUEUE, true, consumer);
             Delivery delivery = consumer.nextDelivery();
             String message = new String(delivery.getBody());
             String correlationID = delivery.getProperties().getCorrelationId();
+            System.out.println(correlationID);
             Aggregate aggregate = (Aggregate) activeAggregates.get(correlationID);
-            if (aggregate == null) {
+            if (aggregate == null) { 
                 aggregate = new LoanAggregate(new BankLoan());
+                aggregate.addMessage(message);
                 activeAggregates.put(correlationID, aggregate);
 
+            }else{
+                aggregate.addMessage(message);
             }
-            //--- ignore message if aggregate is already closed
+            
             if (!aggregate.isComplete()) {
                 aggregate.addMessage(message);
-                if (aggregate.isComplete()) {
-                    channelOut.basicPublish("", OUT_QUEUE, null, aggregate.getResultMessage().getBytes());
-                    activeAggregates.remove(correlationID);
-                }
             }
+            if (aggregate.isComplete()) {
+                    channelOut.basicPublish("", OUT_QUEUE, null, aggregate.getResultMessage().getBytes());
+                    System.out.println("published: ");
+                    activeAggregates.remove(correlationID);
+                    
+                }
         }
     }
 }

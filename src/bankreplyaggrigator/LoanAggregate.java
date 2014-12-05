@@ -29,27 +29,20 @@ public class LoanAggregate implements Aggregate {
     private BankLoan bankLoan;
     
     public LoanAggregate(BankLoan bankLoan){
-        bankLoan = new BankLoan();
+        this.bankLoan = new BankLoan();
     }
     
     @Override
     public void addMessage(String message) {
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             XPath xpath = XPathFactory.newInstance().newXPath();
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            Document doc = builder.parse(message);
+            Document doc = xmlMapper.getXMLDocument(message);
             Loan loan = new Loan();
             loan.setSsn(xpath.compile("/LoanResponse/ssn").evaluate(doc));
             loan.setBankName(xpath.compile("/LoanResponse/bankName").evaluate(doc));
+            System.out.println(xpath.compile("/LoanResponse/bankName").evaluate(doc));
             loan.setInterestRate(Double.parseDouble(xpath.compile("/LoanResponse/interestRate").evaluate(doc)));
             bankLoan.addLoan(loan);
-        } catch (SAXException ex) {
-            Logger.getLogger(LoanAggregate.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
-            Logger.getLogger(LoanAggregate.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ParserConfigurationException ex) {
-            Logger.getLogger(LoanAggregate.class.getName()).log(Level.SEVERE, null, ex);
         } catch (XPathExpressionException ex) {
             Logger.getLogger(LoanAggregate.class.getName()).log(Level.SEVERE, null, ex);
         }
