@@ -10,6 +10,7 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.QueueingConsumer;
 import com.rabbitmq.client.QueueingConsumer.Delivery;
+import dk.cphbusiness.connection.ConnectionCreator;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,50 +31,39 @@ public class Aggregator {
 
     public static void main(String[] args) throws IOException, InterruptedException {
         activeAggregates = new HashMap();
-        
-        ConnectionFactory factory = new ConnectionFactory();
-        factory.setUsername("nicklas");
-        factory.setPassword("cph");
-        factory.setHost("datdb.cphbusiness.dk");
+        ConnectionCreator creator = ConnectionCreator.getInstance();
 
-        Connection connection = factory.newConnection();
-        channelIn = connection.createChannel();
-        channelOut = connection.createChannel();
+        channelIn = creator.createChannel();
+        channelOut = creator.createChannel();
         channelIn.queueDeclare(IN_QUEUE, false, false, false, null);
         channelOut.queueDeclare(OUT_QUEUE, false, false, false, null);
         consumer = new QueueingConsumer(channelIn);
         channelIn.basicConsume(IN_QUEUE, true, consumer);
         handleMessage();
-
-        
     }
 
     public static void handleMessage() throws IOException, InterruptedException {
-
         while (true) {
             Delivery delivery = consumer.nextDelivery();
             String message = new String(delivery.getBody());
             String correlationID = delivery.getProperties().getCorrelationId();
             System.out.println(correlationID);
             Aggregate aggregate = (Aggregate) activeAggregates.get(correlationID);
-            if (aggregate == null) { 
+            if (aggregate == null) {
                 aggregate = new LoanAggregate(new BankLoan());
                 aggregate.addMessage(message);
                 activeAggregates.put(correlationID, aggregate);
-
-            }else{
+            } else {
                 aggregate.addMessage(message);
             }
-            
             if (!aggregate.isComplete()) {
                 aggregate.addMessage(message);
             }
             if (aggregate.isComplete()) {
-                    channelOut.basicPublish("", OUT_QUEUE, null, aggregate.getResultMessage().getBytes());
-                    System.out.println("published: ");
-                    activeAggregates.remove(correlationID);
-                    
-                }
+                channelOut.basicPublish("", OUT_QUEUE, null, aggregate.getResultMessage().getBytes());
+                System.out.println("published: ");
+                activeAggregates.remove(correlationID);
+            }
         }
     }
 }
