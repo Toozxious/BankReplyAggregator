@@ -14,6 +14,9 @@ import dk.cphbusiness.connection.ConnectionCreator;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -39,15 +42,16 @@ public class Aggregator {
         channelOut.queueDeclare(OUT_QUEUE, false, false, false, null);
         consumer = new QueueingConsumer(channelIn);
         channelIn.basicConsume(IN_QUEUE, true, consumer);
+        startTimer();
         handleMessage();
     }
 
-    public static void handleMessage() throws IOException, InterruptedException {
+    private static void handleMessage() throws IOException, InterruptedException {
         while (true) {
             Delivery delivery = consumer.nextDelivery();
             String message = new String(delivery.getBody());
             String correlationID = delivery.getProperties().getCorrelationId();
-            System.out.println(correlationID);
+            System.out.println("Message recived: " + message);
             Aggregate aggregate = (Aggregate) activeAggregates.get(correlationID);
             if (aggregate == null) {
                 aggregate = new LoanAggregate(new BankLoan());
@@ -59,11 +63,37 @@ public class Aggregator {
             if (!aggregate.isComplete()) {
                 aggregate.addMessage(message);
             }
+            publishResult(aggregate, correlationID);
+        }
+    }
+    
+    private static void publishResult(Aggregate aggregate, String correlationID) throws IOException{
             if (aggregate.isComplete()) {
-                channelOut.basicPublish("", OUT_QUEUE, null, aggregate.getResultMessage().getBytes());
+                String resultMessage = aggregate.getResultMessage();
+                System.out.println("Message Published: " + resultMessage);
+                channelOut.basicPublish("", OUT_QUEUE, null, resultMessage.getBytes());
                 System.out.println("published: ");
                 activeAggregates.remove(correlationID);
             }
-        }
+    }
+    
+    private static void startTimer(){
+       Thread timer = new Thread(new Runnable() {
+
+           @Override
+           public void run() {
+               try {
+                   Thread.sleep(20000);
+                   for(Entry<String,Aggregate> entry : activeAggregates.entrySet()){
+                       publishResult(entry.getValue(),entry.getKey());
+                   }
+               } catch (InterruptedException ex) {
+                   Logger.getLogger(Aggregator.class.getName()).log(Level.SEVERE, null, ex);
+               } catch (IOException ex) {
+                   Logger.getLogger(Aggregator.class.getName()).log(Level.SEVERE, null, ex);
+               }
+           }
+       });
+       timer.start();
     }
 }

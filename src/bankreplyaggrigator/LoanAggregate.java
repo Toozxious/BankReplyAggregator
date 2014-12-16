@@ -16,6 +16,7 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 import utilities.xml.xmlMapper;
@@ -59,13 +60,19 @@ public class LoanAggregate implements Aggregate {
         try {
             
             Loan loan = bankLoan.getBestLoan();
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            Document doc = builder.newDocument();
-            Node loanResponse = doc.createElement("LoanResponse");
-            loanResponse.appendChild(doc.createElement("ssn")).appendChild(doc.createTextNode(loan.getSsn()));
-            loanResponse.appendChild(doc.createElement("bankName")).appendChild(doc.createTextNode(loan.getBankName()));
-            loanResponse.appendChild(doc.createElement("interestRate")).appendChild(doc.createTextNode(String.valueOf(loan.getInterestRate())));
+            Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+            
+            Element loanResponse = doc.createElement("LoanResponse");
+            doc.appendChild(loanResponse);
+            Element ssn = doc.createElement("ssn");
+            ssn.appendChild(doc.createTextNode(loan.getSsn()));
+            Element bankName = doc.createElement("bankName");
+            bankName.appendChild(doc.createTextNode(loan.getBankName()));
+            Element interestRate = doc.createElement("intrestRate");
+            interestRate.appendChild(doc.createTextNode(Double.toString(loan.getInterestRate())));
+            loanResponse.appendChild(ssn);
+            loanResponse.appendChild(bankName);
+            loanResponse.appendChild(interestRate);
             
             body = xmlMapper.getStringFromDoc(doc);
             
