@@ -42,7 +42,7 @@ public class LoanAggregate implements Aggregate {
             loan.setSsn(xpath.compile("/LoanResponse/ssn").evaluate(doc));
             loan.setBankName(xpath.compile("/LoanResponse/bankName").evaluate(doc));
             System.out.println(xpath.compile("/LoanResponse/bankName").evaluate(doc));
-            loan.setInterestRate(Double.parseDouble(xpath.compile("/LoanResponse/intrestRate").evaluate(doc)));
+            loan.setInterestRate(Double.parseDouble(xpath.compile("/LoanResponse/interestRate").evaluate(doc)));
             bankLoan.addLoan(loan);
         } catch (XPathExpressionException ex) {
             Logger.getLogger(LoanAggregate.class.getName()).log(Level.SEVERE, null, ex);
