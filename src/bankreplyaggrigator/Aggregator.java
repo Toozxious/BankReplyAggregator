@@ -48,6 +48,7 @@ public class Aggregator {
 
     private static void handleMessage() throws IOException, InterruptedException {
         while (true) {
+            System.out.println("er vi i while");
             Delivery delivery = consumer.nextDelivery();
             String message = new String(delivery.getBody());
             String correlationID = delivery.getProperties().getCorrelationId();
