@@ -27,7 +27,8 @@ public class BankLoan {
     }
 
     public boolean isComplete() {
-        return (loans.size() >= 4) || (startTime + 5000 >= System.currentTimeMillis()); // loan strategy
+        long currentTime = System.currentTimeMillis();
+        return (loans.size() >= 4) || (startTime + 5000 <= currentTime); // loan strategy
     }
 
     public Loan getBestLoan() {

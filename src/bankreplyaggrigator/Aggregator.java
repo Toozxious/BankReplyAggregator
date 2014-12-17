@@ -28,8 +28,8 @@ public class Aggregator {
 
     private static Channel channelIn;
     private static Channel channelOut;
-    private static final String IN_QUEUE = "aggregator";
-    private static final String OUT_QUEUE = "webservice";
+    private static final String IN_QUEUE = "aggregator_gr1";
+    private static final String OUT_QUEUE = "webservice_gr1";
     private static QueueingConsumer consumer;
 
     public static void main(String[] args) throws IOException, InterruptedException {
@@ -60,40 +60,41 @@ public class Aggregator {
             } else {
                 aggregate.addMessage(message);
             }
-            if (!aggregate.isComplete()) {
-                aggregate.addMessage(message);
-            }
             publishResult(aggregate, correlationID);
         }
     }
-    
-    private static void publishResult(Aggregate aggregate, String correlationID) throws IOException{
-            if (aggregate.isComplete()) {
-                String resultMessage = aggregate.getResultMessage();
-                System.out.println("Message Published: " + resultMessage);
-                channelOut.basicPublish("", OUT_QUEUE, null, resultMessage.getBytes());
-                System.out.println("published: ");
-                activeAggregates.remove(correlationID);
-            }
-    }
-    
-    private static void startTimer(){
-       Thread timer = new Thread(new Runnable() {
 
-           @Override
-           public void run() {
-               try {
-                   Thread.sleep(20000);
-                   for(Entry<String,Aggregate> entry : activeAggregates.entrySet()){
-                       publishResult(entry.getValue(),entry.getKey());
-                   }
-               } catch (InterruptedException ex) {
-                   Logger.getLogger(Aggregator.class.getName()).log(Level.SEVERE, null, ex);
-               } catch (IOException ex) {
-                   Logger.getLogger(Aggregator.class.getName()).log(Level.SEVERE, null, ex);
-               }
-           }
-       });
-       timer.start();
+    private static void publishResult(Aggregate aggregate, String correlationID) throws IOException {
+        if (aggregate.isComplete()) {
+            String resultMessage = aggregate.getResultMessage();
+            System.out.println("Message Published: " + resultMessage);
+            channelOut.basicPublish("", OUT_QUEUE, null, resultMessage.getBytes());
+            System.out.println("published: ");
+            activeAggregates.remove(correlationID);
+        }
+    }
+
+    private static void startTimer() {
+        Thread timer = new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        System.out.println("Sleeping");
+                        Thread.sleep(5000);
+                        System.out.println("Running");
+                        for (Entry<String, Aggregate> entry : activeAggregates.entrySet()) {
+                            publishResult(entry.getValue(), entry.getKey());
+                        }
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(Aggregator.class.getName()).log(Level.SEVERE, null, ex);
+                    } catch (IOException ex) {
+                        Logger.getLogger(Aggregator.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }
+        });
+        timer.start();
     }
 }
