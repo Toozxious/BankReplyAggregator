@@ -68,7 +68,7 @@ public class LoanAggregate implements Aggregate {
             ssn.appendChild(doc.createTextNode(loan.getSsn()));
             Element bankName = doc.createElement("bankName");
             bankName.appendChild(doc.createTextNode(loan.getBankName()));
-            Element interestRate = doc.createElement("intrestRate");
+            Element interestRate = doc.createElement("interestRate");
             interestRate.appendChild(doc.createTextNode(Double.toString(loan.getInterestRate())));
             loanResponse.appendChild(ssn);
             loanResponse.appendChild(bankName);

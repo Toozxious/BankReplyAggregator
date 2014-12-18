@@ -34,7 +34,7 @@ public class BankLoan {
     public Loan getBestLoan() {
         Loan bestLoan = loans.get(0);
         for (int i = 1; i < loans.size(); i++) {
-            if (bestLoan.getInterestRate() < loans.get(i).getInterestRate()) {
+            if (bestLoan.getInterestRate() > loans.get(i).getInterestRate()) {
                 bestLoan = loans.get(i);
             }
         }
